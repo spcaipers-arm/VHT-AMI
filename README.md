@@ -21,7 +21,7 @@ The avt.yml describes the inventory of your test suite folder.
 You can now consume the action by referencing the v1 branch
 
 ```yaml
-uses: Arm-Software/AVT-Runner@v1
+uses: Arm-Software/AVT-AMI@v1
 with:
   filepath:
   instance_id: ${{ secrets.AWS_INSTANCE_ID }}
