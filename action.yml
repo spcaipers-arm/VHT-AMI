@@ -1,0 +1,26 @@
+name: 'Run on Arm Virtual Target on AMI'
+description: 'Load executable file to an Arm Virtual Target to execute'
+inputs:
+  filepath:  
+    description: 'path to test_suite'
+    required: true
+  instance_id:
+    description: 'instance id for connection'
+    required: true
+    default: ''
+  secret_key_id:
+    description: 'secret key for connection'
+    required: true
+    default: ''
+  access_key_id:
+    description: 'access key for connection'
+    required: true
+    default: ''    
+
+outputs:
+  outpath: # output will be available to future steps
+    description: 'path to results'
+
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
