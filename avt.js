@@ -24,10 +24,11 @@
 
 'use strict';
 
-const { EC2Client, DescribeInstancesCommand, StartInstancesCommand, StopInstancesCommand   } = require("@aws-sdk/client-ec2");
+const { EC2Client, DescribeInstancesCommand, StartInstancesCommand, StopInstancesCommand } = require("@aws-sdk/client-ec2");
 const { SSMClient, SendCommandCommand, ListCommandsCommand, GetCommandInvocationCommand } = require("@aws-sdk/client-ssm");
+const { Client } = require('node-scp')
 const { resolve } = require("bluebird");
-const { reject } = require("lodash");
+const _ = require("lodash");
 
 /**
  * Class to interact with AWS instance of Arm Virtual Targets
@@ -42,15 +43,15 @@ const { reject } = require("lodash");
 
 class AVTManagement {
   constructor(filepath, instance_id, access_key_id, secret_key_id) {
-    process.env['AWS_ACCESS_KEY_ID'] = access_key_id; 
+    process.env['AWS_ACCESS_KEY_ID'] = access_key_id;
     process.env['AWS_SECRET_ACCESS_KEY'] = secret_key_id;
-    console.info("Constructor of AVT class")      
+    console.info("Constructor of AVT class")
     /** @private @const {EC2Client} */
-    this.ec2_client = new EC2Client( { 
-        region: "us-west-2"
+    this.ec2_client = new EC2Client({
+      region: "us-west-2"
     });
     /** @private @const {SSMClient} */
-    this.ssm_client = new SSMClient( { 
+    this.ssm_client = new SSMClient({
       region: "us-west-2"
     });
     /** @private @const {string[]} */
@@ -69,94 +70,73 @@ class AVTManagement {
         this.instance_id
     }
     const command = new DescribeInstancesCommand(input);
-    try {    
+    try {
       const data = await this.ec2_client.send(command);
-      this.instance_state = data.Reservations[0].Instances[0].State.Name; 
+      this.instance_state = data.Reservations[0].Instances[0].State.Name;
       if (this.instance_state == "stopped") return false;
       this.instance_public_dns = data.Reservations[0].Instances[0].PublicDnsName
-      return true;      
-    }
-    catch (err) {
-      console.log("Error", err);
-    }   
-  };
-
-
-  /** send files to the remote */
-  sendFiles(localpath, remotepath)  {
-    console.info("sending files")
-
-  }
-
-  /** get files from the remote */
-  getFiles(remotepath, localpath) { 
-
-  }
-  
-  //Launch the instance in this.instance_id
-  async startInstance() {
-    let input = {
-      InstanceIds:
-        this.instance_id
-    }
-    const command = new StartInstancesCommand (input);
-    try {    
-      const data = await this.ec2_client.send(command);
-      this.instance_state = data.StartingInstances[0].CurrentState.Name; 
-      if (this.instance_state == "pending") this.sleep(20000);
-      return true;      
-    }
-    catch (err) {
-      console.log("Error", err);
-    }   
-  }
-
-  //Stop the instance in this.instance_id
-  async stopInstance() {
-    let input = {
-      InstanceIds:
-        this.instance_id
-
-    }
-    const command = new StopInstancesCommand (input);
-    try {    
-      const data = await this.ec2_client.send(command);
-      this.instance_state = data.StoppingInstances[0].CurrentState.Name;
-      if (this.instance_state == "stopping") this.sleep(20000);
       return true;
     }
     catch (err) {
       console.log("Error", err);
-    }   
+    }
+  };
+
+
+  /** send files to the remote */
+  async sendFiles(localpath, remotepath) {
+    let pem_private = this.pem_private;
+    let instance_public_dns = this.instance_public_dns;
+    Client({
+      host: instance_public_dns,
+      port: 22,
+      username: 'ubuntu',
+      privateKey: pem_private
+    }).then(client => {
+      client.uploadFile(localpath, remotepath)
+        .then(response => {
+          client.close() // remember to close connection after you finish
+        })
+        .catch(error => { })
+    }).catch(e => console.log(e))
   }
 
-  //Launch the avt.yml processing on the remote node
-  async executeAVT() {
-    let commandParameters = {
-      DocumentName: "AWS-RunShellScript",
-      Targets: [{
-        Key: "InstanceIds",
-        Values: this.instance_id
-      }],
-      Parameters: {
-      workingDirectory: ["/home/ubuntu/work"],
-      commands: ["python3 /home/ubuntu/avtengine/process_avt.py"]
-    },
-    TimeoutSeconds: 60000,
-     MaxConcurrency: "50",
-     MaxErrors: "0",
-    };
+  /** get files from the remote */
+  getFiles(remotepath, localpath) {
+  }
 
-    let command = new SendCommandCommand (commandParameters);    
-    let data = await this.ssm_client.send(command);
-    let command_id = data.Command.CommandId;
+  /**
+   * Function will send the command to EC2 machines
+   * @params {Object} commandParameters : command parameters information
+   */
+  async sendCommandToInstances(commandParameters) {
+    let ssm_client = this.ssm_client;
+    return new Promise(function (resolve, reject) {
+      console.log(commandParameters)
+      let command = new SendCommandCommand(commandParameters);
+      ssm_client.send(command, function (err, data) {
+        if (err) {
+          reject("Request Failed!");
+        }
+        resolve(data);
+      });
+    });
+  }
 
-    new Promise((resolve, reject) => {
+
+  /**
+   * Function will check the command status i.e. Success, Failed
+   * @params {String} commandId : command Id
+   * @params {Number} maxRetry
+   */
+  async checkCommandStatus(commandId, maxRetry) {
+    let currentTry = 1;
+    return new Promise((resolve, reject) => {
       let input = {
-        CommandId: command_id
-      };  
-      command = new ListCommandsCommand (input);
+        CommandId: commandId
+      };
       let toStopInterval = setInterval(() => {
+        let command = new ListCommandsCommand(input);
         this.ssm_client.send(command, (err, data) => {
           if (err) reject("Command id not found");
           if (currentTry > maxRetry) {
@@ -166,30 +146,131 @@ class AVTManagement {
           let commandStatus = data.Commands[0].Status;
           if (commandStatus === "InProgress") {
             currentTry += 1;
-            }
+          }
           else {
-             clearInterval(toStopInterval);
-             resolve(data.Commands[0].Status);
+            clearInterval(toStopInterval);
+            resolve(data.Commands[0].Status);
           }
         });
       }, 1500);
     });
-    new Promise((resolve, reject) => {
-      let input = {
-        CommandId: command_id,
-        InstanceId: this.instance_id[0]
-      };  
-      command = new GetCommandInvocationCommand(input);
+  }
+
+
+  /**
+   * Get the command logs
+   * @params {String} instanceId : Instance Id of Ec2 machine
+   * @params {String} commandId : command Id
+   * @params {String} commandExecStatus : command status
+   */
+  async getCommandsLogs(instanceId, commandId, commandExecStatus) {
+    let input = {
+      CommandId: commandId,
+      InstanceId: instanceId
+    }
+    return new Promise((resolve, reject) => {
+      let command = new GetCommandInvocationCommand(input);
       this.ssm_client.send(command, (err, data) => {
         if (err) {
-          console.error("No command logs", err);
+          console.error("Error came while fetching the logs ", err);
           reject(err);
         }
-        JSON.stringify(data);
+        let logs = commandExecStatus === "Success" ? data.StandardOutputContent : data.StandardErrorContent
+        return resolve(logs);
+      })
+    })
+  }
 
-      });
+
+
+  /** Launch the instance in this.instance_id */
+  async startInstance() {
+    let input = {
+      InstanceIds:
+        this.instance_id
+    }
+    const command = new StartInstancesCommand(input);
+    try {
+      const data = await this.ec2_client.send(command);
+      this.instance_state = data.StartingInstances[0].CurrentState.Name;
+      if (this.instance_state == "pending") this.sleep(20000);
+      return true;
+    }
+    catch (err) {
+      console.log("Error", err);
+    }
+  }
+
+  /** Stop the instance in this.instance_id */
+  async stopInstance() {
+    let input = {
+      InstanceIds:
+        this.instance_id
+
+    }
+    const command = new StopInstancesCommand(input);
+    try {
+      const data = await this.ec2_client.send(command);
+      this.instance_state = data.StoppingInstances[0].CurrentState.Name;
+      if (this.instance_state == "stopping") this.sleep(20000);
+      return true;
+    }
+    catch (err) {
+      console.log("Error", err);
+    }
+  }
+
+  /** Launch the avt.yml processing on the remote node */
+  async executeAVT() {
+    return new Promise((resolve, reject) => {
+      const data = this.executeShellCommand(["python3 /home/ubuntu/avtengine/process_avt.py"]);
+      this.pem_private = data;
+      resolve(data);
     });
-    
+  }
+
+  /** Launch the avt.yml processing on the remote node */
+  async getSSHKey() {
+    return new Promise((resolve, reject) => {
+      const data = this.executeShellCommand(["cat /home/ubuntu/avtengine/github.pem"]);
+      this.pem_private = data;
+      resolve(data);
+    });
+  }
+
+  async executeShellCommand(commandlist) {
+
+    if (!_.isEmpty(this.instance_id)) {
+      try {
+        let commandParameters = {
+          DocumentName: "AWS-RunShellScript",
+          Targets: [{
+            Key: "InstanceIds",
+            Values: this.instance_id
+          }],
+          Parameters: {
+            workingDirectory: ["/home/ubuntu/work"],
+            commands: commandlist
+          },
+          TimeoutSeconds: 60000,
+          MaxConcurrency: "50",
+          MaxErrors: "0",
+        };
+
+
+        let data = await this.sendCommandToInstances(commandParameters);
+        let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 80);
+        console.info("Command Status is ", commandExecStatus, "\n");
+        let logs = await this.getCommandsLogs(this.instance_id[0], data.Command.CommandId, commandExecStatus);
+        return Promise.resolve(logs);
+      } catch (err) {
+        console.error("Error came while sending commands ", err);
+        return Promise.reject(err);
+      }
+    } else {
+      console.error("No Instances are ready for receiving the command")
+      return "No Instances are ready for receiving the commands"
+    }
   }
 
 }

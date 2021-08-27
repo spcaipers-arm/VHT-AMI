@@ -27,6 +27,7 @@
   "dependencies": {
     "@actions/core": "^1.2.5",
     "@aws-sdk/client-ec2": "^3.27.0",
+    "@aws-sdk/client-iam": "^3.27.0",
     "@aws-sdk/client-ssm": "^3.27.0",
     "bluebird": "^3.7.2",
     "fs": "^0.0.1-security",

@@ -36,17 +36,12 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
       //var startstat = await avt.startInstance();      
     }
   }
-  console.log ("Public DNS name:", avt.instance_public_dns);
-  await avt.executeAVT();
-  //await avt.stopInstance();
-
+  avt.pem_private = await avt.getSSHKey();
+  await avt.sendFiles(filepath,"/home/ubuntu/work/");
+  data = await avt.executeAVT();
+  console.log(data)
+  //var stopstat = await avt.stopInstance();  
 };
-
-
-// @params {Array} instanceIds : Array of instance ids
-async function runnermain(instanceIds) {
-
-}
 
 module.exports = amirun;
   

@@ -12,6 +12,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Local test scripts
+ami_test.js
+
 # Runtime data
 pids
 *.pid
