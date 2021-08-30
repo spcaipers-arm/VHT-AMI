@@ -87,22 +87,36 @@ class AVTManagement {
   async sendFiles(localpath, remotepath) {
     let pem_private = this.pem_private;
     let instance_public_dns = this.instance_public_dns;
-    Client({
-      host: instance_public_dns,
-      port: 22,
-      username: 'ubuntu',
-      privateKey: pem_private
-    }).then(client => {
-      client.uploadFile(localpath, remotepath)
-        .then(response => {
-          client.close() // remember to close connection after you finish
-        })
-        .catch(error => { })
-    }).catch(e => console.log(e))
+    try {
+      const client = await Client({
+        host: instance_public_dns,
+        port: 22,
+        username: 'ubuntu',
+        privateKey: pem_private
+      })
+      await client.uploadFile(localpath, remotepath);
+      client.close();
+    } catch (e) {
+      console.log(e)
+    }
   }
 
   /** get files from the remote */
-  getFiles(remotepath, localpath) {
+  async getFiles(remotepath, localpath) {
+    let pem_private = this.pem_private;
+    let instance_public_dns = this.instance_public_dns;
+    try {
+      const client = await Client({
+        host: instance_public_dns,
+        port: 22,
+        username: 'ubuntu',
+        privateKey: pem_private
+      })
+      await client.downloadFile(remotepath, localpath);
+      client.close();
+    } catch (e) {
+      console.log(e)
+    }
   }
 
   /**
@@ -224,7 +238,6 @@ class AVTManagement {
   async executeAVT() {
     return new Promise((resolve, reject) => {
       const data = this.executeShellCommand(["python3 /home/ubuntu/avtengine/process_avt.py"]);
-      this.pem_private = data;
       resolve(data);
     });
   }
@@ -249,7 +262,7 @@ class AVTManagement {
             Values: this.instance_id
           }],
           Parameters: {
-            workingDirectory: ["/home/ubuntu/work"],
+            workingDirectory: ["/home/ubuntu/avtwork"],
             commands: commandlist
           },
           TimeoutSeconds: 60000,

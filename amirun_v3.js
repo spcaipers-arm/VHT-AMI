@@ -23,25 +23,38 @@
 *******************************************************************************/
 
 const AVT = require("./avt.js");
+var tar = require('tar')
 
 let amirun = async function (filepath, instance_id, access_key_id, secret_key_id) {
 
   const avt = new AVT(filepath, instance_id, access_key_id, secret_key_id);
   var stat = await avt.getStatus();
-  if (stat == true) console.log ("AMI Instance is ready");
+  if (stat == true) console.log("AMI Instance is ready");
   if (stat == false) {
-    console.log ("AMI Instance is not ready")
-    if(avt.instance_state == "stopped") {
+    console.log("AMI Instance is not ready")
+    if (avt.instance_state == "stopped") {
       console.log("Stopped: Trying to start.");
       //var startstat = await avt.startInstance();      
     }
   }
+  tar.create(
+    {
+      file: 'avt.tar'
+    },
+    [filepath]
+  ).then(_ => { ".. tarball has been created .." });
+  
   avt.pem_private = await avt.getSSHKey();
-  await avt.sendFiles(filepath,"/home/ubuntu/work/");
+  await avt.sendFiles('avt.tar', "/home/ubuntu/avtwork/avt.tar");
   data = await avt.executeAVT();
   console.log(data)
+  
+  await avt.getFiles('/home/ubuntu/avtwork/out.tar', 'out.tar');
+  
+
   //var stopstat = await avt.stopInstance();  
+
+
 };
 
 module.exports = amirun;
-  
