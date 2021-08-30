@@ -237,7 +237,7 @@ class AVTManagement {
   /** Launch the avt.yml processing on the remote node */
   async executeAVT() {
     return new Promise((resolve, reject) => {
-      const data = this.executeShellCommand(["python3 /home/ubuntu/avtengine/process_avt.py"]);
+      const data = this.executeShellCommand(["python3 /home/ubuntu/avtagent/process_avt.py"]);
       resolve(data);
     });
   }
@@ -245,7 +245,7 @@ class AVTManagement {
   /** Launch the avt.yml processing on the remote node */
   async getSSHKey() {
     return new Promise((resolve, reject) => {
-      const data = this.executeShellCommand(["cat /home/ubuntu/avtengine/github.pem"]);
+      const data = this.executeShellCommand(["cat /home/ubuntu/avtagent/github.pem"]);
       this.pem_private = data;
       resolve(data);
     });

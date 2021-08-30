@@ -34,7 +34,7 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
     console.log("AMI Instance is not ready")
     if (avt.instance_state == "stopped") {
       console.log("Stopped: Trying to start.");
-      //var startstat = await avt.startInstance();      
+      var startstat = await avt.startInstance();      
     }
   }
   tar.create(
@@ -51,9 +51,7 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
   
   await avt.getFiles('/home/ubuntu/avtwork/out.tar', 'out.tar');
   
-
   //var stopstat = await avt.stopInstance();  
-
 
 };
 
