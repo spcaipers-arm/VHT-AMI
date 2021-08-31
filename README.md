@@ -23,7 +23,7 @@ You can now consume the action by referencing the v1 branch
 ```yaml
 uses: Arm-Software/AVT-AMI@v1
 with:
-  filepath:
+  avt_in:
   instance_id: ${{ secrets.AWS_INSTANCE_ID }}
   access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
   secret_key_id: ${{ secrets.AWS_SECRET_KEY_ID }}
