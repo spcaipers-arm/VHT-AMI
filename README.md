@@ -11,7 +11,7 @@ This action manages connection, upload and execution of a test suite on an Arm V
 Todo
 
 
-## Describe test-suite in avt.yml
+## Describe test-suite in vht.yml
 
 The vht.yml describes the inventory of your test suite folder.
 
