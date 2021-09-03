@@ -29,7 +29,7 @@ const amirun = require('./amirun_v3');
 // most @actions toolkit packages have async methods
 async function run() {
   try {
-    const filepath = core.getInput('filepath');
+    const filepath = core.getInput('avt_in');
     core.info(`Running with ${filepath} ...`);
 
     const access_key_id = core.getInput('access_key_id');
