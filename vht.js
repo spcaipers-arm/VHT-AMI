@@ -34,25 +34,25 @@ const _ = require("lodash");
  * Class to interact with AWS instance of Arm Virtual Targets
  * 
  * constructor params:
- * @param {string} filepath       Path to the testsuite on host. Needs avt.yml in root.
+ * @param {string} filepath       Path to the testsuite on host. Needs vht.yml in root.
  * @param {string} instance_id    EC2 instance ID.
  * @param {string} access_key_id  IAM Access Key with permissions: AmazonEC2FullAccess, AmazonSSMFullAccess
  * @param {string} secret_key_id  IAM Secret Key to Access Key
  * 
  */
 
-class AVTManagement {
+class VHTManagement {
   constructor(filepath, instance_id, access_key_id, secret_key_id) {
     process.env['AWS_ACCESS_KEY_ID'] = access_key_id;
     process.env['AWS_SECRET_ACCESS_KEY'] = secret_key_id;
-    console.info("Constructor of AVT class")
+    console.info("Constructor of VHT class")
     /** @private @const {EC2Client} */
     this.ec2_client = new EC2Client({
-      region: "us-west-2"
+      region: "us-east-1"
     });
     /** @private @const {SSMClient} */
     this.ssm_client = new SSMClient({
-      region: "us-west-2"
+      region: "us-east-1"
     });
     /** @private @const {string[]} */
     if (!Array.isArray(instance_id)) this.instance_id = [instance_id];
@@ -234,18 +234,18 @@ class AVTManagement {
     }
   }
 
-  /** Launch the avt.yml processing on the remote node */
-  async executeAVT() {
+  /** Launch the vht.yml processing on the remote node */
+  async executeVHT() {
     return new Promise((resolve, reject) => {
-      const data = this.executeShellCommand(["python3 /home/ubuntu/avtagent/process_avt.py"]);
+      const data = this.executeShellCommand(["python3 /home/ubuntu/vhtagent/process_vht.py"]);
       resolve(data);
     });
   }
 
-  /** Launch the avt.yml processing on the remote node */
+  /** Launch the vht.yml processing on the remote node */
   async getSSHKey() {
     return new Promise((resolve, reject) => {
-      const data = this.executeShellCommand(["cat /home/ubuntu/avtagent/github.pem"]);
+      const data = this.executeShellCommand(["cat /home/ubuntu/vhtagent/github.pem"]);
       this.pem_private = data;
       resolve(data);
     });
@@ -262,7 +262,7 @@ class AVTManagement {
             Values: this.instance_id
           }],
           Parameters: {
-            workingDirectory: ["/home/ubuntu/avtwork"],
+            workingDirectory: ["/home/ubuntu/vhtwork"],
             commands: commandlist
           },
           TimeoutSeconds: 60000,
@@ -288,4 +288,4 @@ class AVTManagement {
 
 }
 
-module.exports = AVTManagement;
+module.exports = VHTManagement;

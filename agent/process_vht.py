@@ -27,18 +27,18 @@ import yaml
 import os
 import subprocess
 
-inventory_file = "./avt.yaml"
+inventory_file = "./vht.yml"
 
 def main():
 
-    os.chdir("/home/ubuntu/avtwork/")    
-    os.system("sudo tar xvf /home/ubuntu/avtwork/avt.tar --strip-components=2")
+    os.chdir("/home/ubuntu/vhtwork/")    
+    os.system("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=2")
     os.system("sudo chmod +x ./scripts/*.*")
     os.system ("mkdir ./out")
     with open(os.path.abspath(inventory_file), "r") as ymlfile:
         inventory = yaml.safe_load(ymlfile)
 
-        print("Reading inventory yaml: avt.yaml")
+        print("Reading inventory yaml: vht.yml")
 
         for key, value in inventory.items():
             suite_name = value['name']
@@ -79,7 +79,7 @@ def main():
                   print("Post-run execution: ", post_test_execute)
                   os.system(post_test_execute)
   
-    os.system("tar -zcvf /home/ubuntu/avtwork/out.tar /home/ubuntu/avtwork/out/")
+    os.system("tar -zcvf /home/ubuntu/vhtwork/out.tar /home/ubuntu/vhtwork/out/")
 
 if __name__ == '__main__':
     main()

@@ -22,7 +22,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: ./
       with:
-        filepath: ./avt_ci
+        vht_in: ./
         instance_id: ${{ secrets.AWS_INSTANCE_ID }}
         access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         secret_key_id: ${{ secrets.AWS_SECRET_KEY_ID }}

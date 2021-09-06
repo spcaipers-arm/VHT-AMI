@@ -1,7 +1,7 @@
 name: 'Run on Arm Virtual Target on AMI'
 description: 'Load executable file to an Arm Virtual Target to execute'
 inputs:
-  avt_in:  
+  vht_in:  
     description: 'path to test_suite'
     required: true
   instance_id:
@@ -18,7 +18,7 @@ inputs:
     default: ''    
 
 outputs:
-  avt_out: # output will be available to future steps
+  vht_out: # output will be available to future steps
     description: 'path to results'
 
 runs:

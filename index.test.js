@@ -22,16 +22,16 @@
 * SOFTWARE.
 *******************************************************************************/
 
-const avtclass = require('./avt.js');
+const vhtclass = require('./vht.js');
 const process = require('process');
 const cp = require('child_process');
 const path = require('path');
-const AVTManagement = require('./avt.js');
+const VHTManagement = require('./vht.js');
 
 jest.setTimeout(60000);
 
 test('spy using class method', () => {
-  const result = new AVTManagement()
+  const result = new VHTManagement()
   const spy = jest.spyOn(result, 'getStatus')
   result.getStatus()
 

@@ -22,36 +22,45 @@
 * SOFTWARE.
 *******************************************************************************/
 
-const AVT = require("./avt.js");
+const VHT = require("./vht.js");
 var tar = require('tar')
 
 let amirun = async function (filepath, instance_id, access_key_id, secret_key_id) {
 
-  const avt = new AVT(filepath, instance_id, access_key_id, secret_key_id);
-  var stat = await avt.getStatus();
+  const vht = new VHT(filepath, instance_id, access_key_id, secret_key_id);
+  var stat = await vht.getStatus();
   if (stat == true) console.log("AMI Instance is ready");
   if (stat == false) {
     console.log("AMI Instance is not ready")
-    if (avt.instance_state == "stopped") {
+    if (vht.instance_state == "stopped") {
       console.log("Stopped: Trying to start.");
-      var startstat = await avt.startInstance();      
+      var startstat = await vht.startInstance();      
     }
   }
   tar.create(
     {
-      file: 'avt.tar'
+      file: 'vht.tar'
     },
     [filepath]
   ).then(_ => { ".. tarball has been created .." });
   
-  avt.pem_private = await avt.getSSHKey();
-  await avt.sendFiles('avt.tar', "/home/ubuntu/avtwork/avt.tar");
-  data = await avt.executeAVT();
+  vht.pem_private = await vht.getSSHKey();
+  await vht.sendFiles('vht.tar', "/home/ubuntu/vhtwork/vht.tar");
+  data = await vht.executeVHT();
   console.log(data)
   
-  await avt.getFiles('/home/ubuntu/avtwork/out.tar', 'out.tar');
+  await vht.getFiles('/home/ubuntu/vhtwork/out.tar', 'out.tar');
   
-  //var stopstat = await avt.stopInstance();  
+  tar.extract(
+    {
+      file: './out.tar',
+      gzip: true
+    },
+    ["./result"]
+  ).then(_ => { ".. tarball has been extracted .." });
+  
+
+  //var stopstat = await vht.stopInstance();  
 
 };
 

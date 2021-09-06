@@ -1,5 +1,5 @@
 {
-  "name": "avt-aws-runner",
+  "name": "vht-aws-runner",
   "version": "1.0.0",
   "description": "Arm Virtual Targets Github Action for AWS nodes",
   "main": "index.js",
