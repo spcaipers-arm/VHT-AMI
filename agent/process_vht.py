@@ -34,6 +34,7 @@ def main():
     
     os.system('sudo rm -R /home/ubuntu/vhtwork/')
     os.makedirs('/home/ubuntu/vhtwork/')
+    os.system("sudo chown ubuntu vhtwork")
     os.chdir("/home/ubuntu/vhtwork/")    
     os.system("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=2")
     os.system("sudo chmod +x ./scripts/*.*")
