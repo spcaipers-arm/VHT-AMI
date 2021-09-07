@@ -25,12 +25,15 @@
 from parser import suite
 import yaml
 import os
-import subprocess
+import shutil
 
 inventory_file = "./vht.yml"
 
 def main():
 
+    
+    shutil.rmtree('/home/ubuntu/vhtwork/')
+    os.makedirs('/home/ubuntu/vhtwork/')
     os.chdir("/home/ubuntu/vhtwork/")    
     os.system("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=2")
     os.system("sudo chmod +x ./scripts/*.*")
