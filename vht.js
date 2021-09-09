@@ -97,7 +97,7 @@ class VHTManagement {
       await client.uploadFile(localpath, remotepath);
       client.close();
     } catch (e) {
-      console.log(e)
+      console.log("Upload failed: ", e)
     }
   }
 
