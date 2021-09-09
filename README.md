@@ -1,4 +1,4 @@
-# Arm Virtual Hardware Targets - GitHub Action
+# Orta - GitHub Action
 
 <p align="center">
   <a href="https://github.com/Arm-Software/VHT-AMI/actions"><img alt="javscript-action status" src="https://github.com/Arm-Software/VHT-AMI/workflows/units-test/badge.svg"></a>
