@@ -41,13 +41,13 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
   console.log("cwd= ", process.cwd())
   tar.create(
     {
-      file: 'vht.tar'
+      file: './vht.tar'
     },
     [filepath]
   ).then(_ => { ".. tarball has been created .." });
   
   vht.pem_private = await vht.getSSHKey();
-  await vht.sendFiles('vht.tar', "/home/ubuntu/vhtwork");
+  await vht.sendFiles("./vht.tar", "/home/ubuntu/vhtwork");
   data = await vht.executeVHT();
   console.log(data)
   

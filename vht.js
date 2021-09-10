@@ -91,7 +91,7 @@ class VHTManagement {
       const client = await Client({
         host: instance_public_dns,
         port: 22,
-        username: 'ubuntu',
+        username: 'root',
         privateKey: pem_private
       })
       await client.uploadFile(localpath, remotepath);
