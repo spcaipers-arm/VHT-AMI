@@ -37,7 +37,7 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
       var startstat = await vht.startInstance();      
     }
   }
-  console.log("Working on directory (avt_in): ", filepath)
+  console.log("Working on directory (vht_in): ", filepath)
   console.log("cwd= ", process.cwd())
   tar.create(
     {
