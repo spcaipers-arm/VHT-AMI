@@ -23,7 +23,9 @@
 *******************************************************************************/
 
 const VHT = require("./vht.js");
+var path = require('path');
 var tar = require('tar')
+
 
 let amirun = async function (filepath, instance_id, access_key_id, secret_key_id) {
 
@@ -47,7 +49,8 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
   ).then(_ => { ".. tarball has been created .." });
   
   vht.pem_private = await vht.getSSHKey();
-  await vht.sendFiles("./vht.tar", "/home/ubuntu/vhtwork");
+  
+  await vht.sendFiles(path.join(process.cwd(),filepath,"/vht.tar"), "/home/ubuntu/vhtwork/vht.tar");
   data = await vht.executeVHT();
   console.log(data)
   

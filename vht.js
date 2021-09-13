@@ -24,10 +24,11 @@
 
 'use strict';
 
-const { EC2Client, DescribeInstancesCommand, StartInstancesCommand, StopInstancesCommand } = require("@aws-sdk/client-ec2");
+const { EC2Client, DescribeInstancesCommand, StartInstancesCommand, StopInstancesCommand, SpotFleetMonitoring } = require("@aws-sdk/client-ec2");
 const { SSMClient, SendCommandCommand, ListCommandsCommand, GetCommandInvocationCommand } = require("@aws-sdk/client-ssm");
-const { Client } = require('node-scp')
-const { resolve } = require("bluebird");
+const SFTPClient = require('ssh2-sftp-client');
+const fs = require('fs');
+//const { resolve } = require("bluebird");
 const _ = require("lodash");
 
 /**
@@ -82,41 +83,50 @@ class VHTManagement {
     }
   };
 
-
   /** send files to the remote */
   async sendFiles(localpath, remotepath) {
-    let pem_private = this.pem_private;
-    let instance_public_dns = this.instance_public_dns;
-    try {
-      const client = await Client({
-        host: instance_public_dns,
-        port: 22,
+
+    return new Promise((resolve, reject) => {
+      console.log("Uploading ", localpath);
+
+      this.sftp = new SFTPClient();
+      this.sftp.connect({
+        host: this.instance_public_dns,
         username: 'root',
-        privateKey: pem_private
-      })
-      await client.uploadFile(localpath, remotepath);
-      client.close();
-    } catch (e) {
-      console.log("Upload failed: ", e)
-    }
+        privateKey: this.pem_private
+      }).then(() => {
+        this.sftp.fastPut(localpath, remotepath);
+      }).then(data => {
+        console.log('Uploaded ', data);
+        resolve(data);
+      }).catch(err => {
+        console.log('SFTP error ', err);
+      });
+    });
+
   }
 
   /** get files from the remote */
   async getFiles(remotepath, localpath) {
-    let pem_private = this.pem_private;
-    let instance_public_dns = this.instance_public_dns;
-    try {
-      const client = await Client({
-        host: instance_public_dns,
-        port: 22,
+
+    return new Promise((resolve, reject) => {
+
+      console.log("Downloading ", remotepath);
+
+      this.sftp = new SFTPClient();
+      this.sftp.connect({
+        host: this.instance_public_dns,
         username: 'root',
-        privateKey: pem_private
-      })
-      await client.downloadFile(remotepath, localpath);
-      client.close();
-    } catch (e) {
-      console.log(e)
-    }
+        privateKey: this.pem_private
+      }).then(() => {
+        this.sftp.fastGet(remotepath, localpath);
+      }).then(data => {
+        console.log('Downloaded ', data);
+        resolve();
+      }).catch(err => {
+        console.log('SFTP error ', err);
+      });
+    });
   }
 
   /**
