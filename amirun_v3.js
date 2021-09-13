@@ -39,26 +39,27 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
       var startstat = await vht.startInstance();      
     }
   }
-  console.log("Working on directory (vht_in): ", filepath)
-  console.log("cwd= ", process.cwd())
+  console.log("Working on directory (vht_in): ", filepath);
+  filepath =  path.join(process.cwd(), filepath);
+  console.log("cwd/vht_in= ",filepath);
   tar.create(
     {
-      file: './vht.tar'
+      file: path.join(filepath,'vht.tar')
     },
     [filepath]
   ).then(_ => { ".. tarball has been created .." });
   
   vht.pem_private = await vht.getSSHKey();
   
-  await vht.sendFiles(path.join(__dirname,filepath,"/vht.tar"), "/home/ubuntu/vhtwork/vht.tar");
+  await vht.sendFiles(path.join(filepath,"/vht.tar"), "/home/ubuntu/vhtwork/vht.tar");
   data = await vht.executeVHT();
   console.log(data)
   
-  await vht.getFiles('/home/ubuntu/vhtwork/out.tar', path.join(__dirname,'out.tar'));
+  await vht.getFiles('/home/ubuntu/vhtwork/out.tar', path.join(filepath,'out.tar'));
   
   tar.extract(
     {
-      file: path.join(__dirname,'./out.tar'),
+      file: path.join(filepath,'./out.tar'),
       gzip: true
     },
     ["./result"]
