@@ -50,15 +50,15 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
   
   vht.pem_private = await vht.getSSHKey();
   
-  await vht.sendFiles(path.join(process.cwd(),filepath,"/vht.tar"), "/home/ubuntu/vhtwork/vht.tar");
+  await vht.sendFiles(path.join(__dirname,filepath,"/vht.tar"), "/home/ubuntu/vhtwork/vht.tar");
   data = await vht.executeVHT();
   console.log(data)
   
-  await vht.getFiles('/home/ubuntu/vhtwork/out.tar', 'out.tar');
+  await vht.getFiles('/home/ubuntu/vhtwork/out.tar', path.join(__dirname,'out.tar'));
   
   tar.extract(
     {
-      file: './out.tar',
+      file: path.join(__dirname,'./out.tar'),
       gzip: true
     },
     ["./result"]
