@@ -41,10 +41,12 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
   }
   console.log("Working on directory (vht_in): ", filepath);
   filepath =  path.join(process.cwd(), filepath);
+  tar_cwd = process.cwd();
   console.log("cwd/vht_in= ",filepath);
   tar.create(
     {
-      file: path.join(filepath,'vht.tar')
+      file: path.join(filepath,'vht.tar'),
+      C: tar_cwd 
     },
     [filepath]
   ).then(_ => { ".. tarball has been created .." });
