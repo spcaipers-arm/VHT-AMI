@@ -58,15 +58,17 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
   console.log(data)
   
   await vht.getFiles('/home/ubuntu/vhtwork/out.tar', path.join(filepath,'out.tar'));
-  
+
+
+  /*
   tar.extract(
     {
       file: path.join(filepath,'./out.tar'),
       gzip: true
     },
-    ["./result"]
+    [filepath]
   ).then(_ => { ".. tarball has been extracted .." });
-  
+  */
 
   //var stopstat = await vht.stopInstance();  
 
