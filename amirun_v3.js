@@ -72,6 +72,8 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
 
   //var stopstat = await vht.stopInstance();  
 
+  process.exit()
+
 };
 
 module.exports = amirun;
