@@ -76,7 +76,8 @@ var amirun = async function (vht_in, instance_id, access_key_id, secret_key_id) 
   //var stopstat = await vht.stopInstance();  
 
   */
-  return resolve();
+  resolve();
+  process.exit();
 
 };
 
