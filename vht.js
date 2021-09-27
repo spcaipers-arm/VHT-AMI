@@ -28,7 +28,7 @@ const { EC2Client, DescribeInstancesCommand, StartInstancesCommand, StopInstance
 const { SSMClient, SendCommandCommand, ListCommandsCommand, GetCommandInvocationCommand } = require("@aws-sdk/client-ssm");
 const SFTPClient = require('ssh2-sftp-client');
 const fs = require('fs');
-//const { resolve } = require("bluebird");
+const resolve = require("bluebird");
 const _ = require("lodash");
 
 /**
@@ -98,9 +98,10 @@ class VHTManagement {
         this.sftp.fastPut(localpath, remotepath);
       }).then(data => {
         console.log('Uploaded ', data);
-        resolve(data);
+        return resolve(data);
       }).catch(err => {
         console.log('SFTP error ', err);
+        return reject();
       });
     });
 
@@ -110,9 +111,7 @@ class VHTManagement {
   async getFiles(remotepath, localpath) {
 
     return new Promise((resolve, reject) => {
-
       console.log("Downloading ", remotepath);
-
       this.sftp = new SFTPClient();
       this.sftp.connect({
         host: this.instance_public_dns,
@@ -125,6 +124,7 @@ class VHTManagement {
         resolve();
       }).catch(err => {
         console.log('SFTP error ', err);
+        reject();
       });
     });
   }
@@ -140,9 +140,9 @@ class VHTManagement {
       let command = new SendCommandCommand(commandParameters);
       ssm_client.send(command, function (err, data) {
         if (err) {
-          reject("Request Failed!");
+          return reject("Request Failed!");
         }
-        resolve(data);
+        return resolve(data);
       });
     });
   }
@@ -165,7 +165,7 @@ class VHTManagement {
           if (err) reject("Command id not found");
           if (currentTry > maxRetry) {
             clearInterval(toStopInterval);
-            reject("Max Limit Reached! Status cannot determined");
+            return reject("Max Limit Reached! Status cannot determined");
           }
           let commandStatus = data.Commands[0].Status;
           if (commandStatus === "InProgress") {
@@ -173,7 +173,7 @@ class VHTManagement {
           }
           else {
             clearInterval(toStopInterval);
-            resolve(data.Commands[0].Status);
+            return resolve(data.Commands[0].Status);
           }
         });
       }, 1500);

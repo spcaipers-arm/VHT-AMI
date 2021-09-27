@@ -24,12 +24,13 @@
 
 const VHT = require("./vht.js");
 var path = require('path');
-var tar = require('tar')
+var tar = require('tar');
+const { resolve } = require("path");
 
 
-let amirun = async function (filepath, instance_id, access_key_id, secret_key_id) {
+var amirun = async function (vht_in, instance_id, access_key_id, secret_key_id) {
 
-  const vht = new VHT(filepath, instance_id, access_key_id, secret_key_id);
+  const vht = new VHT(vht_in, instance_id, access_key_id, secret_key_id);
   var stat = await vht.getStatus();
   if (stat == true) console.log("AMI Instance is ready");
   if (stat == false) {
@@ -39,26 +40,29 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
       var startstat = await vht.startInstance();      
     }
   }
-  console.log("Working on directory (vht_in): ", filepath);
-  filepath =  path.join(process.cwd(), filepath);
+  console.log("Working on directory (vht_in): ", vht_in);
+  filepath =  path.join(process.cwd(), vht_in);
   tar_cwd = process.cwd();
   console.log("cwd/vht_in= ",filepath);
   tar.create(
     {
       file: path.join(filepath,'vht.tar'),
-      C: tar_cwd 
+      C: tar_cwd
     },
-    [filepath]
+    [vht_in]
   ).then(_ => { ".. tarball has been created .." });
-  
+
   vht.pem_private = await vht.getSSHKey();
-  
+
   await vht.sendFiles(path.join(filepath,"/vht.tar"), "/home/ubuntu/vhtwork/vht.tar");
+  await vht.sleep(30000); //work-around
   data = await vht.executeVHT();
   console.log(data)
-  
+
   await vht.getFiles('/home/ubuntu/vhtwork/out.tar', path.join(filepath,'out.tar'));
 
+  //work-around
+  await vht.sleep(30000);
 
   /*
   tar.extract(
@@ -68,11 +72,11 @@ let amirun = async function (filepath, instance_id, access_key_id, secret_key_id
     },
     [filepath]
   ).then(_ => { ".. tarball has been extracted .." });
-  */
 
   //var stopstat = await vht.stopInstance();  
 
-  process.exit()
+  */
+  return resolve();
 
 };
 
