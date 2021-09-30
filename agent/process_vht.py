@@ -31,12 +31,21 @@ inventory_file = "./vht.yml"
 
 def main():
    
-    os.system('sudo rm -R /home/ubuntu/vhtwork/')
-    os.system('mkdir /home/ubuntu/vhtwork/')
-    os.chdir("/home/ubuntu/vhtwork/")    
+#    os.system('sudo rm -R /home/ubuntu/vhtwork/')
+#    os.system('mkdir /home/ubuntu/vhtwork/')
+    dir = "/home/ubuntu/vhtwork/"
+    os.chdir(dir)    
+    for files in os.listdir(dir):
+        path = os.path.join(dir, files)
+        try:
+            if path != "/home/ubuntu/vhtwork/vht.tar":
+                shutil.rmtree(path)
+        except OSError:
+            os.remove(path)
+
     os.system("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=2")
-    os.system("sudo chmod +x ./scripts/*.*")
-    os.system ("mkdir ./out")
+#   os.system("sudo chmod +x ./scripts/*.*")
+    os.system ("mkdir -p ./out")
     with open(os.path.abspath(inventory_file), "r") as ymlfile:
         inventory = yaml.safe_load(ymlfile)
 
