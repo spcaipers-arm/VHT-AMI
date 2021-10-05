@@ -1,9 +1,13 @@
 name: 'Run on Arm Virtual Target on AMI'
 description: 'Load executable file to an Arm Virtual Target to execute'
 inputs:
-  vht_in:  
+  vht_in:
     description: 'path to test_suite'
     required: true
+  aws_region:
+    description: 'aws region'
+    required: false
+    default: 'us-west-1'
   instance_id:
     description: 'instance id for connection'
     required: true
@@ -15,7 +19,7 @@ inputs:
   access_key_id:
     description: 'access key for connection'
     required: true
-    default: ''    
+    default: ''
 
 outputs:
   vht_out: # output will be available to future steps

@@ -1,18 +1,18 @@
 /*******************************************************************************
 * MIT License
-* 
+*
 * Copyright (c) 2021 Arm Ltd.
-* 
+*
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
 * in the Software without restriction, including without limitation the rights
 * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 * copies of the Software, and to permit persons to whom the Software is
 * furnished to do so, subject to the following conditions:
-* 
+*
 * The above copyright notice and this permission notice shall be included in all
 * copies or substantial portions of the Software.
-* 
+*
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,8 +24,19 @@
 
 'use strict';
 
-const { EC2Client, DescribeInstancesCommand, StartInstancesCommand, StopInstancesCommand, SpotFleetMonitoring } = require("@aws-sdk/client-ec2");
-const { SSMClient, SendCommandCommand, ListCommandsCommand, GetCommandInvocationCommand } = require("@aws-sdk/client-ssm");
+const { EC2Client,
+        DescribeInstancesCommand,
+        DescribeInstanceStatusCommand,
+        StartInstancesCommand,
+        StopInstancesCommand
+      } = require("@aws-sdk/client-ec2");
+
+const { SSMClient,
+        SendCommandCommand,
+        ListCommandsCommand,
+        GetCommandInvocationCommand
+      } = require("@aws-sdk/client-ssm");
+
 const SFTPClient = require('ssh2-sftp-client');
 const fs = require('fs');
 const resolve = require("bluebird");
@@ -33,38 +44,62 @@ const _ = require("lodash");
 
 /**
  * Class to interact with AWS instance of Arm Virtual Targets
- * 
+ *
  * constructor params:
  * @param {string} filepath       Path to the testsuite on host. Needs vht.yml in root.
  * @param {string} instance_id    EC2 instance ID.
+ * @param {string} aws_region     AWS Region
  * @param {string} access_key_id  IAM Access Key with permissions: AmazonEC2FullAccess, AmazonSSMFullAccess
  * @param {string} secret_key_id  IAM Secret Key to Access Key
- * 
+ *
  */
 
 class VHTManagement {
-  constructor(filepath, instance_id, access_key_id, secret_key_id) {
+  constructor(filepath, instance_id, aws_region, access_key_id, secret_key_id) {
     process.env['AWS_ACCESS_KEY_ID'] = access_key_id;
     process.env['AWS_SECRET_ACCESS_KEY'] = secret_key_id;
     console.info("Constructor of VHT class")
     /** @private @const {EC2Client} */
     this.ec2_client = new EC2Client({
-      region: "us-east-1"
+      region: aws_region
     });
     /** @private @const {SSMClient} */
     this.ssm_client = new SSMClient({
-      region: "us-east-1"
+      region: aws_region
     });
+    this.aws_region = aws_region
     /** @private @const {string[]} */
     if (!Array.isArray(instance_id)) this.instance_id = [instance_id];
   }
 
   /** Generic sleep function */
-  sleep(ms) {
+  async sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  //* Check status of instance in this.instance_id */
+  /** Collect DescribeInstance info */
+  async describeEC2InstancesState(debug = false) {
+    try {
+      const data = await this.ec2_client.send(new DescribeInstancesCommand({ InstanceIds: [ this.instance_id ] }));
+      if (debug) console.log("Success", JSON.stringify(data));
+      return data;
+    } catch (err) {
+      console.log("Error", err);
+    }
+  };
+
+  /** Collect DescribeInstanceStatus info */
+  async describeEC2InstancesStatus(debug = false) {
+    try {
+      const data = await this.ec2_client.send(new DescribeInstanceStatusCommand({ InstanceIds: [ this.instance_id ] }));
+      if (debug) console.log("Success", JSON.stringify(data));
+      return data;
+    } catch (err) {
+      console.log("Error", err);
+    }
+  };
+
+  /** Check status of instance in this.instance_id **/
   async getStatus() {
     let input = {
       InstanceIds:
@@ -180,7 +215,6 @@ class VHTManagement {
     });
   }
 
-
   /**
    * Get the command logs
    * @params {String} instanceId : Instance Id of Ec2 machine
@@ -205,8 +239,6 @@ class VHTManagement {
     })
   }
 
-
-
   /** Launch the instance in this.instance_id */
   async startInstance() {
     let input = {
@@ -216,8 +248,8 @@ class VHTManagement {
     const command = new StartInstancesCommand(input);
     try {
       const data = await this.ec2_client.send(command);
-      this.instance_state = data.StartingInstances[0].CurrentState.Name;
-      if (this.instance_state == "pending") this.sleep(20000);
+      await this.waitForEC2StateName('running');
+      await this.waitForEC2Status('ok');
       return true;
     }
     catch (err) {
@@ -229,14 +261,12 @@ class VHTManagement {
   async stopInstance() {
     let input = {
       InstanceIds:
-        this.instance_id
-
+      this.instance_id
     }
     const command = new StopInstancesCommand(input);
     try {
       const data = await this.ec2_client.send(command);
-      this.instance_state = data.StoppingInstances[0].CurrentState.Name;
-      if (this.instance_state == "stopping") this.sleep(20000);
+      await this.waitForEC2StateName('stopped');
       return true;
     }
     catch (err) {
@@ -262,7 +292,6 @@ class VHTManagement {
   }
 
   async executeShellCommand(commandlist) {
-
     if (!_.isEmpty(this.instance_id)) {
       try {
         let commandParameters = {
@@ -280,7 +309,6 @@ class VHTManagement {
           MaxErrors: "0",
         };
 
-
         let data = await this.sendCommandToInstances(commandParameters);
         let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 80);
         console.info("Command Status is ", commandExecStatus, "\n");
@@ -296,6 +324,41 @@ class VHTManagement {
     }
   }
 
+  /** Valid ec2StateName: pending | running | shutting-down | terminated | stopping | stopped **/
+  async waitForEC2StateName(ec2StateName, waitTimeSec = 10) {
+    try {
+        var found = false;
+        while(found == false) {
+            const data = await this.describeEC2InstancesState();
+            console.log("EC2 instance state name == " + data.Reservations[0].Instances[0].State.Name);
+            if (data.Reservations[0].Instances[0].State.Name == ec2StateName) {
+                found = true;
+                break;
+            }
+            await this.sleep(1000*waitTimeSec);
+        }
+    } catch (err) {
+        console.log("Error", err);
+    }
+  }
+
+  /** Valid ec2StatusName: ok | impaired | initializing | insufficient-data | not-applicable **/
+  async waitForEC2Status(ec2StatusName, waitTimeSec = 10) {
+    try {
+        var found = false;
+        while(found == false) {
+            const data = await this.describeEC2InstancesStatus();
+            console.log("EC2 instance status name == " + data.InstanceStatuses[0].InstanceStatus.Status);
+            if (data.InstanceStatuses[0].InstanceStatus.Status == ec2StatusName) {
+                found = true;
+                break;
+            }
+            await this.sleep(1000*waitTimeSec);
+        }
+    } catch (err) {
+        console.log("Error", err);
+    }
+  }
 }
 
 module.exports = VHTManagement;
