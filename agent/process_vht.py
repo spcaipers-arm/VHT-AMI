@@ -67,6 +67,20 @@ def main():
               print("Post-run execution: ", post_suite_execute)
               os.system(post_suite_execute)
 
+            print("Reading Builds: ")
+            for build in value['builds']:
+                buildname = [key for key in build.keys()][0]
+                print("Build name: ", buildname)
+                shell_command = build[buildname]["shell"]
+                print("Executing Build command: ", shell_command)                
+                result = os.system(shell_command)
+                print(result)
+                post_build_execute = build[buildname]["post"]
+                if post_build_execute != None: 
+                  print("Post-build execution: ", post_build_execute)
+                  os.system(post_build_execute)
+
+
             print("Reading Tests: ")
             for test in value['tests']:
                 testname = [key for key in test.keys()][0]
@@ -79,9 +93,9 @@ def main():
                 if pre_test_execute != None: 
                   print("Pre-run execution: ", pre_test_execute)
                   os.system(pre_test_execute)
-                model_command = fvp_executable + " --config-file=" + \
-                    os.path.join("", fvp_config) + " " + arguments + " " + \
-                    executable_name + " > " + executable_name+".stdio"
+                head, executable_base_name = os.path.split(executable_name)
+                model_command = fvp_executable + " " + arguments + " " + \
+                    executable_name + " > " + os.path.join("/home/ubuntu/vhtwork/out/",executable_base_name +".stdio")
                 print(model_command)
                 result = os.system(model_command)
                 #print("Dry run: ", fvp_executable, "--config-file", arguments ,os.path.join("", fvp_config), executable_name)
