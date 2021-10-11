@@ -43,7 +43,7 @@ def main():
         except OSError:
             os.remove(path)
 
-    os.system("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=2")
+    os.system("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=1")
 #   os.system("sudo chmod +x ./scripts/*.*")
     os.system ("mkdir -p ./out")
     with open(os.path.abspath(inventory_file), "r") as ymlfile:
