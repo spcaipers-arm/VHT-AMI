@@ -24,21 +24,32 @@
 
 'use strict';
 
-const { EC2Client,
-        DescribeInstancesCommand,
-        DescribeInstanceStatusCommand,
-        StartInstancesCommand,
-        StopInstancesCommand
-      } = require("@aws-sdk/client-ec2");
+const {
+  EC2Client,
+  DescribeInstancesCommand,
+  DescribeInstanceStatusCommand,
+  StartInstancesCommand,
+  StopInstancesCommand
+} = require("@aws-sdk/client-ec2");
 
-const { SSMClient,
-        SendCommandCommand,
-        ListCommandsCommand,
-        GetCommandInvocationCommand
-      } = require("@aws-sdk/client-ssm");
+const {
+  S3Client,
+  ListObjectsCommand,
+  PutObjectCommand,
+  DeleteObjectCommand
+} = require("@aws-sdk/client-s3");
+
+const {
+  SSMClient,
+  SendCommandCommand,
+  ListCommandsCommand,
+  GetCommandInvocationCommand,
+  ListCommandInvocationsCommand
+} = require("@aws-sdk/client-ssm");
 
 const SFTPClient = require('ssh2-sftp-client');
 const fs = require('fs');
+const path = require('path');
 const resolve = require("bluebird");
 const _ = require("lodash");
 
@@ -46,30 +57,56 @@ const _ = require("lodash");
  * Class to interact with AWS instance of Arm Virtual Targets
  *
  * constructor params:
- * @param {string} filepath       Path to the testsuite on host. Needs vht.yml in root.
- * @param {string} instance_id    EC2 instance ID.
- * @param {string} aws_region     AWS Region
- * @param {string} access_key_id  IAM Access Key with permissions: AmazonEC2FullAccess, AmazonSSMFullAccess
- * @param {string} secret_key_id  IAM Secret Key to Access Key
+ * @param {string} filepath           Path to the testsuite on host. Needs vht.yml in root.
+ * @param {string} instance_id        EC2 instance ID.
+ * @param {string} aws_region         AWS Region
+ * @param {string} access_key_id      IAM Access Key with permissions: AmazonEC2FullAccess, AmazonSSMFullAccess
+ * @param {string} secret_access_key  IAM Secret Key to Access Key
+ * @param {string} session_token       Session Token (optional)
  *
  */
 
 class VHTManagement {
-  constructor(filepath, instance_id, aws_region, access_key_id, secret_key_id) {
+  constructor(filepath,
+              instance_id,
+              aws_region,
+              s3_bucket_name,
+              access_key_id,
+              secret_access_key,
+              session_token) {
     process.env['AWS_ACCESS_KEY_ID'] = access_key_id;
-    process.env['AWS_SECRET_ACCESS_KEY'] = secret_key_id;
+    process.env['AWS_SECRET_ACCESS_KEY'] = secret_access_key;
+    process.env['AWS_SESSION_TOKEN'] = session_token;
+    process.env['AWS_DEFAULT_REGION'] = aws_region;
+
     console.info("Constructor of VHT class")
+
     /** @private @const {EC2Client} */
     this.ec2_client = new EC2Client({
       region: aws_region
     });
+    console.info("EC2 client created!")
+
+    /** @private @const {S3Client} */
+    this.s3_client = new S3Client({
+      region: aws_region
+    });
+    console.info("S3 client created!")
+
     /** @private @const {SSMClient} */
     this.ssm_client = new SSMClient({
       region: aws_region
     });
+    console.info("SSM client created!")
+
     this.aws_region = aws_region
+    this.s3_bucket_name = s3_bucket_name
+
     /** @private @const {string[]} */
     if (!Array.isArray(instance_id)) this.instance_id = [instance_id];
+
+    console.info("Constructor of VHT class done!")
+
   }
 
   /** Generic sleep function */
@@ -171,17 +208,17 @@ class VHTManagement {
   async sendCommandToInstances(commandParameters) {
     let ssm_client = this.ssm_client;
     return new Promise(function (resolve, reject) {
-      console.log(commandParameters)
+      console.log(commandParameters);
       let command = new SendCommandCommand(commandParameters);
       ssm_client.send(command, function (err, data) {
         if (err) {
+          console.log("Error: " + err);
           return reject("Request Failed!");
         }
         return resolve(data);
       });
     });
   }
-
 
   /**
    * Function will check the command status i.e. Success, Failed
@@ -277,7 +314,7 @@ class VHTManagement {
   /** Launch the vht.yml processing on the remote node */
   async executeVHT() {
     return new Promise((resolve, reject) => {
-      const data = this.executeShellCommand(["python3 /home/ubuntu/vhtagent/process_vht.py"]);
+      const data = this.executeRemoteShellCommand(["runuser -l ubuntu -c 'source vars && python3 /home/ubuntu/vhtagent/process_vht.py'"]);
       resolve(data);
     });
   }
@@ -285,13 +322,34 @@ class VHTManagement {
   /** Launch the vht.yml processing on the remote node */
   async getSSHKey() {
     return new Promise((resolve, reject) => {
-      const data = this.executeShellCommand(["cat /home/ubuntu/vhtagent/github.pem"]);
+      const data = this.executeRemoteShellCommand(["cat /home/ubuntu/vhtagent/github.pem"]);
       this.pem_private = data;
       resolve(data);
     });
   }
 
-  async executeShellCommand(commandlist) {
+  /**
+ * Execute Shell commands into Local github runner.
+ * @param cmd {string}
+ * @return {Promise<string>}
+ */
+  async executeLocalShellCommand(cmd) {
+    const exec = require('child_process').exec;
+    console.log("cmd: ", cmd);
+    return new Promise((resolve, reject) => {
+      exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+          console.warn(error);
+        }
+        console.log("stdout: ", stdout);
+        console.log("stderr: ", stderr);
+        resolve(stdout? stdout : stderr);
+      });
+    });
+  }
+
+  // Method which runs Shell commands in the Remote EC2 instance
+  async executeRemoteShellCommand(commandlist, workingDir = ["/home/ubuntu/vhtwork"]) {
     if (!_.isEmpty(this.instance_id)) {
       try {
         let commandParameters = {
@@ -300,8 +358,9 @@ class VHTManagement {
             Key: "InstanceIds",
             Values: this.instance_id
           }],
+          Region: this.aws_region,
           Parameters: {
-            workingDirectory: ["/home/ubuntu/vhtwork"],
+            workingDirectory: workingDir,
             commands: commandlist
           },
           TimeoutSeconds: 60000,
@@ -310,7 +369,7 @@ class VHTManagement {
         };
 
         let data = await this.sendCommandToInstances(commandParameters);
-        let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 80);
+        let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 300);
         console.info("Command Status is ", commandExecStatus, "\n");
         let logs = await this.getCommandsLogs(this.instance_id[0], data.Command.CommandId, commandExecStatus);
         return Promise.resolve(logs);
@@ -321,6 +380,63 @@ class VHTManagement {
     } else {
       console.error("No Instances are ready for receiving the command")
       return "No Instances are ready for receiving the commands"
+    }
+  }
+
+  /** Upload File to the S3 Bucket
+   * Not used so far **/
+  async uploadFileToS3Bucket(filepath, debug = false) {
+    try {
+      // Create a filestream from a file
+      console.log("upload filepath = " + filepath);
+      const fileStream = fs.createReadStream(filepath);
+
+      // Set the uploadParams parameters
+      const uploadParams = {
+        Bucket: this.s3_bucket_name,
+        Key: path.basename(filepath),
+        Body: fileStream
+      };
+
+      if(debug) console.log("uploadParams = " + uploadParams);
+      const data = await this.s3_client.send(new PutObjectCommand(uploadParams));
+      if (debug) console.log("Success", data);
+      return data;
+    } catch(err) {
+      console.log("Error", err);
+    }
+  }
+
+
+  /** getFileFromS3ToInstance File to the S3 Bucket
+   * Not used so far **/
+  async getFileFromS3ToInstance(key, debug = false) {
+    try {
+
+      const bucketParams = {
+        Bucket: this.s3_bucket_name,
+        Key: key,
+      };
+
+      // Create a helper function to convert a ReadableStream to a string.
+      const streamToString = (stream) =>
+      new Promise((resolve, reject) => {
+        const chunks = [];
+        stream.on("data", (chunk) => chunks.push(chunk));
+        stream.on("error", reject);
+        stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+      });
+
+      // Get the object} from the Amazon S3 bucket. It is returned as a ReadableStream.
+      const data = await this.s3_client.send(new GetObjectCommand(bucketParams));
+      console.log(data);
+
+      // Convert the ReadableStream to a string.
+      const bodyContents = await streamToString(data.Body);
+      console.log(bodyContents);
+
+    } catch(err) {
+      console.log("Error", err);
     }
   }
 

@@ -25,6 +25,9 @@ uses: Arm-Software/VHT-AMI@v1
 with:
   vht_in:
   instance_id: ${{ secrets.AWS_INSTANCE_ID }}
+  instance_id: ${{ env.EC2_INSTANCE_ID }}
+  aws_region: ${{ env. AWS_DEFAULT_REGION }}
+  s3_bucket_name: ${{ env.AWS_S3_BUCKET }}
   access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  secret_key_id: ${{ secrets.AWS_SECRET_KEY_ID }}
+  secret_key_id: ${{ secrets.AWS_SECRET_KEY }}
 ```
