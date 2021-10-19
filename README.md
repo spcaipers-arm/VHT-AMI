@@ -1,10 +1,10 @@
-# Orta - GitHub Action
+# Arm Virtual Hardware - GitHub Action
 
 <p align="center">
   <a href="https://github.com/Arm-Software/VHT-AMI/actions"><img alt="javscript-action status" src="https://github.com/Arm-Software/VHT-AMI/workflows/units-test/badge.svg"></a>
 </p>
 
-This action manages connection, upload and execution of a test suite on an Arm VHT System that is provided by a [Amazon Machine Image](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) (AMI) on a Amazon EC2 Linux instance.
+This action manages connection, upload and execution of a test suite using a [GitHub-hosted Runner](https://arm-software.github.io/VHT/main/infrastructure/html/run_ami_github.html#GitHub_hosted). It connects to the Arm Virtual Hardware Service on AWS that is provided by an [Amazon Machine Image](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) (AMI) and executes on a AWS EC2 Linux instance.
 
 ## Setup of AWS instance
 
