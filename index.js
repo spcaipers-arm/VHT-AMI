@@ -31,19 +31,31 @@ async function run() {
     const filepath = core.getInput('vht_in');
     core.info(`Running with ${filepath} ...`);
 
-    const access_key_id = core.getInput('access_key_id');
-    core.info(`Running with ${access_key_id} ...`);
+    const instance_id = core.getInput('instance_id');
+    core.info(`Running with ${instance_id} ...`);
 
     const aws_region = core.getInput('aws_region');
     core.info(`Running with ${aws_region} ...`);
 
-    const secret_key_id = core.getInput('secret_key_id');
-    core.info(`Running with ${secret_key_id} ...`);
+    const s3_bucket_name = core.getInput('s3_bucket_name');
+    core.info(`Running with ${s3_bucket_name} ...`);
 
-    const instance_id = core.getInput('instance_id');
-    core.info(`Running with ${instance_id} ...`);
+    const access_key_id = core.getInput('access_key_id');
+    core.info(`Running with ${access_key_id} ...`);
 
-    await amirun(filepath, instance_id, aws_region, access_key_id, secret_key_id);
+    const secret_access_key = core.getInput('secret_access_key');
+    core.info(`Running with ${secret_access_key} ...`);
+
+    const session_token = core.getInput('session_token');
+    core.info(`Running with ${session_token} ...`);
+
+    await amirun(filepath,
+                 instance_id,
+                 aws_region,
+                 s3_bucket_name,
+                 access_key_id,
+                 secret_access_key,
+                 session_token);
   } catch (error) {
     core.setFailed(error.message);
   }

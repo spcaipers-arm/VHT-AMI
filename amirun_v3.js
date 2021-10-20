@@ -27,53 +27,76 @@ var path = require('path');
 var tar = require('tar');
 const { resolve } = require("path");
 
-var amirun = async function (vht_in, instance_id, aws_region, access_key_id, secret_key_id) {
-  const vht = new VHT(vht_in, instance_id, aws_region, access_key_id, secret_key_id);
+var amirun = async function (vht_in, instance_id, aws_region, s3_bucket_name, access_key_id, secret_access_key, session_token) {
+  const vht = new VHT(vht_in, instance_id, aws_region, s3_bucket_name, access_key_id, secret_access_key, session_token);
   var stat = await vht.getStatus();
   if (stat == true) {
-    console.log("AMI Instance is ready");
+    console.log("EC2 Instance is ready");
   }
   else {
-    console.log("AMI Instance is not ready");
+    console.log("EC2 Instance is not ready");
     if (vht.instance_state == "stopped") {
-      console.log("Stopped: Trying to start the instance");
+      console.log("Trying to start the instance");
       await vht.startInstance();
     }
   }
+
   console.log("Working on directory (vht_in): ", vht_in);
   filepath =  path.join(process.cwd(), vht_in);
   tar_cwd = process.cwd();
   console.log("cwd/vht_in= ",filepath);
-  tar.create(
-    {
-      file: path.join(filepath,'vht.tar'),
+
+  // Tar vht_in into the current folder
+  tar.create({
+      file: 'vht.tar',
       C: tar_cwd
     },
     [vht_in]
   ).then(_ => { ".. tarball has been created .." });
 
-  vht.pem_private = await vht.getSSHKey();
+  console.log("Create a var file with required envs from ubuntu user:");
+  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'cat ~/.bashrc | grep export > vars'"], ['/home/ubuntu']);
 
-  await vht.sendFiles(path.join(filepath,"/vht.tar"), "/home/ubuntu/vhtwork/vht.tar");
-  await vht.sleep(30000); //work-around
+  console.log("Uploading vht.tar from GH Runner to AWS S3 bucket:");
+  await vht.executeLocalShellCommand("aws s3 cp vht.tar s3://" + s3_bucket_name + "/vht.tar");
+
+  console.log("Creating folders:")
+  await vht.executeRemoteShellCommand(['rm -rf vhtagent' ], ['/home/ubuntu']);
+  await vht.executeRemoteShellCommand(['rm -rf vhtwork' ], ['/home/ubuntu']);
+  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'mkdir vhtagent'"], ['/home/ubuntu']);
+  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'mkdir vhtwork'"], ['/home/ubuntu']);
+  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'mkdir -p /home/ubuntu/packs/.Web'"]);
+
+  console.log("Downloading the build/test script:");
+  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'cd /home/ubuntu/vhtagent && wget https://raw.githubusercontent.com/spcaipers-arm/VHT-AMI/use_s3_bucket/agent/process_vht.py'"], ['/home/ubuntu/vhtagent']);
+
+  console.log("Downloading index file for the packs:");
+  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'wget -N https://www.keil.com/pack/index.pidx -O /home/ubuntu/packs/.Web/index.pidx'"]);
+
+  console.log("Install aws cli:")
+  await vht.executeRemoteShellCommand(["apt update"]);
+  await vht.executeRemoteShellCommand(["apt install awscli -y"]);
+
+  console.log("Copying back the vht.tar from AWS S3 Bucket to the AWS EC2 instance:");
+  await vht.executeRemoteShellCommand(["aws s3 cp s3://" + s3_bucket_name + "/vht.tar vht.tar"]);
+
+  // console.log("TEMPORARY: Copy Compiler license to the EC2:");
+  // await vht.executeRemoteShellCommand(["aws s3 cp s3://" + s3_bucket_name + "/license-orta-hwskt.dat /opt/data.dat"]);
+
+  console.log("Executing build/test VHT:");
   data = await vht.executeVHT();
-  console.log(data)
+  console.log(data);
 
-  await vht.getFiles('/home/ubuntu/vhtwork/out.tar', path.join(filepath,'out.tar'));
+  console.log("Copy out.tar from AWS EC2 instance to the AWS S3 bucket");
+  await vht.executeRemoteShellCommand(["aws s3 cp out.tar s3://" + s3_bucket_name + "/out.tar"]);
 
-  //work-around
-  await vht.sleep(30000);
+  console.log("Getting the out.tar file from AWS S3 bucket to the GH Runner");
+  await vht.executeLocalShellCommand("aws s3 cp s3://" + s3_bucket_name + "/out.tar out.tar");
 
-  /*
-  tar.extract(
-    {
-      file: path.join(filepath,'./out.tar'),
-      gzip: true
-    },
-    [filepath]
-  ).then(_ => { ".. tarball has been extracted .." });
-
-  */
+  console.log("Remove vht.tar from AWS S3 Bucket");
+  await vht.executeLocalShellCommand("aws s3 rm s3://" + s3_bucket_name + "/vht.tar");
+  console.log("Remove out.tar from AWS S3 Bucket");
+  await vht.executeLocalShellCommand("aws s3 rm s3://" + s3_bucket_name + "/out.tar");
 
  resolve();
  await vht.stopInstance();
