@@ -35,7 +35,7 @@
     "fs": "^0.0.1-security",
     "lodash": "^4.17.21",
     "node-scp": "^0.0.15",
-    "ssh2-sftp-client": "^7.0.4",
+    "ssh2-sftp-client": "^7.1.0",
     "tar": "^6.1.11"
   },
   "devDependencies": {
