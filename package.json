@@ -25,19 +25,22 @@
   },
   "homepage": "https://github.com/actions/javascript-action#readme",
   "dependencies": {
-    "@actions/core": "^1.2.5",
+    "@actions/core": "^1.6.0",
     "@aws-sdk/client-ec2": "^3.27.0",
     "@aws-sdk/client-iam": "^3.27.0",
+    "@aws-sdk/client-s3": "^3.35.0",
     "@aws-sdk/client-ssm": "^3.27.0",
+    "@aws-sdk/middleware-sdk-s3": "^3.36.0",
     "bluebird": "^3.7.2",
     "fs": "^0.0.1-security",
     "lodash": "^4.17.21",
     "node-scp": "^0.0.15",
+    "ssh2-sftp-client": "^7.0.4",
     "tar": "^6.1.11"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.27.0",
-    "eslint": "^7.4.0",
-    "jest": "^26.6.3"
+    "@vercel/ncc": "^0.31.1",
+    "eslint": "^8.0.1",
+    "jest": "^27.2.4"
   }
 }

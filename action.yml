@@ -1,22 +1,33 @@
 name: 'Run on Arm Virtual Target on AMI'
 description: 'Load executable file to an Arm Virtual Target to execute'
 inputs:
-  vht_in:  
+  vht_in:
     description: 'path to test_suite'
     required: true
+  aws_region:
+    description: 'aws region'
+    required: false
+    default: 'eu-west-1'
+  s3_bucket_name:
+    description: S3 Bucket to upload files used on EC2 instance
+    required: false
+    default: 'orta-vht'
   instance_id:
     description: 'instance id for connection'
     required: true
     default: ''
-  secret_key_id:
-    description: 'secret key for connection'
+  access_key_id:
+    description: 'access key id for connection'
     required: true
     default: ''
-  access_key_id:
-    description: 'access key for connection'
+  secret_access_key:
+    description: 'secret access key for connection'
     required: true
-    default: ''    
-
+    default: ''
+  session_token:
+    description: 'session token if you need'
+    required: false
+    default: ''
 outputs:
   vht_out: # output will be available to future steps
     description: 'path to results'
