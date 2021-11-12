@@ -30,7 +30,7 @@
     "@aws-sdk/client-iam": "^3.27.0",
     "@aws-sdk/client-s3": "^3.35.0",
     "@aws-sdk/client-ssm": "^3.27.0",
-    "@aws-sdk/middleware-sdk-s3": "^3.36.0",
+    "@aws-sdk/middleware-sdk-s3": "^3.41.0",
     "bluebird": "^3.7.2",
     "fs": "^0.0.1-security",
     "lodash": "^4.17.21",
