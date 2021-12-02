@@ -68,7 +68,7 @@ var amirun = async function (vht_in, instance_id, aws_region, s3_bucket_name, ac
   await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'mkdir -p /home/ubuntu/packs/.Web'"]);
 
   console.log("Downloading the build/test script:");
-  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'cd /home/ubuntu/vhtagent && wget https://raw.githubusercontent.com/spcaipers-arm/VHT-AMI/use_s3_bucket/agent/process_vht.py'"], ['/home/ubuntu/vhtagent']);
+  await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'cd /home/ubuntu/vhtagent && wget https://raw.githubusercontent.com/ARM-software/VHT-AMI/master/agent/process_vht.py'"], ['/home/ubuntu/vhtagent']);
 
   console.log("Downloading index file for the packs:");
   await vht.executeRemoteShellCommand(["runuser -l ubuntu -c 'wget -N https://www.keil.com/pack/index.pidx -O /home/ubuntu/packs/.Web/index.pidx'"]);
