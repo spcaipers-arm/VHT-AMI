@@ -27,17 +27,66 @@ var path = require('path');
 var tar = require('tar');
 const { resolve } = require("path");
 
-var amirun = async function (vht_in, instance_id, aws_region, s3_bucket_name, access_key_id, secret_access_key, session_token) {
-  const vht = new VHT(vht_in, instance_id, aws_region, s3_bucket_name, access_key_id, secret_access_key, session_token);
-  var stat = await vht.getStatus();
-  if (stat == true) {
-    console.log("EC2 Instance is ready");
-  }
-  else {
-    console.log("EC2 Instance is not ready");
-    if (vht.instance_state == "stopped") {
-      console.log("Trying to start the instance");
-      await vht.startInstance();
+var amirun = async function (access_key_id,
+                             ami_id,
+                             aws_region,
+                             iam_role,
+                             instance_id,
+                             instance_type,
+                             s3_bucket_name,
+                             secret_access_key,
+                             security_group_id,
+                             session_token,
+                             ssh_key_name,
+                             subnet_id,
+                             terminate_ec2_instance,
+                             vht_in) {
+
+  const vht = new VHT(access_key_id,
+                      ami_id,
+                      aws_region,
+                      iam_role,
+                      instance_id,
+                      instance_type,
+                      s3_bucket_name,
+                      secret_access_key,
+                      security_group_id,
+                      session_token,
+                      ssh_key_name,
+                      subnet_id,
+                      terminate_ec2_instance,
+                      vht_in);
+
+  if (instance_id == '') {
+    /* This means a new EC2 instance needs to be created. */
+    console.log("New EC2 instance will be created");
+    var instance_id = await vht.executeLocalShellCommand(`aws ec2 run-instances ` +
+                                                            `--image-id ${ami_id} ` +
+                                                            `--count 1 ` +
+                                                            `--instance-type ${instance_type} ` +
+                                                            `--key-name ${ssh_key_name} ` +
+                                                            `--security-group-ids ${security_group_id} ` +
+                                                            `--iam-instance-profile ${iam_role} ` +
+                                                            `--subnet-id ${subnet_id} ` +
+                                                            `--tag-specifications "ResourceType=instance,Tags=[{Key=VHTGitHubAction,Value=true}]" ` +
+                                                            `--output text | awk '/INSTANCE/{print $9}'`);
+
+    vht.instance_id = [ instance_id.trim() ];
+    console.log("Waiting for EC2 to be ready!");
+    await vht.executeLocalShellCommand(`aws ec2 wait instance-status-ok --instance-ids ${vht.instance_id}`);
+  } else {
+    /* An VHT EC2 instance already exists */
+    console.log("EC2 already exists");
+    var stat = await vht.getStatus();
+
+    if (stat == true) {
+      console.log("EC2 Instance is ready");
+    } else {
+      console.log("EC2 Instance is not ready");
+      if (vht.instance_state == "stopped") {
+        console.log("Trying to start the instance");
+        await vht.startInstance();
+      }
     }
   }
 
@@ -80,9 +129,6 @@ var amirun = async function (vht_in, instance_id, aws_region, s3_bucket_name, ac
   console.log("Copying back the vht.tar from AWS S3 Bucket to the AWS EC2 instance:");
   await vht.executeRemoteShellCommand(["aws s3 cp s3://" + s3_bucket_name + "/vht.tar vht.tar"]);
 
-  // console.log("TEMPORARY: Copy Compiler license to the EC2:");
-  // await vht.executeRemoteShellCommand(["aws s3 cp s3://" + s3_bucket_name + "/license-orta-hwskt.dat /opt/data.dat"]);
-
   console.log("Executing build/test VHT:");
   data = await vht.executeVHT();
   console.log(data);
@@ -98,8 +144,14 @@ var amirun = async function (vht_in, instance_id, aws_region, s3_bucket_name, ac
   console.log("Remove out.tar from AWS S3 Bucket");
   await vht.executeLocalShellCommand("aws s3 rm s3://" + s3_bucket_name + "/out.tar");
 
+  await vht.stopInstance();
+
+  if(terminate_ec2_instance == 'true') {
+    console.log(`Terminate EC2 instance ${instance_id}`);
+    await vht.executeLocalShellCommand(`aws ec2 terminate-instances --instance-ids ${instance_id}`);
+  }
+
  resolve();
- await vht.stopInstance();
  process.exit();
 };
 

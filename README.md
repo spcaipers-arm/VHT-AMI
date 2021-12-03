@@ -18,16 +18,35 @@ The vht.yml describes the inventory of your test suite folder.
 
 ## Usage
 
-You can now consume the action by referencing the v1 branch
+You can now consume the action by referencing the v1 branch.
 
+Mandatory inputs for already created EC2 Instance:
 ```yaml
 uses: Arm-Software/VHT-AMI@v1
 with:
-  vht_in:
-  instance_id: ${{ secrets.AWS_INSTANCE_ID }}
-  instance_id: ${{ env.EC2_INSTANCE_ID }}
-  aws_region: ${{ env. AWS_DEFAULT_REGION }}
-  s3_bucket_name: ${{ env.AWS_S3_BUCKET }}
-  access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  secret_key_id: ${{ secrets.AWS_SECRET_KEY }}
+  access_key_id: ${{ secrets.ACCESS_KEY_ID }}
+  aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
+  instance_id: ${{ env.AWS_INSTANCE_ID }}
+  s3_bucket_name: ${{ secrets.AWS_S3_BUCKET }}
+  vht_in: ./vht/
+
+```
+
+Inputs for EC2 instance to be created:
+```yaml
+uses: Arm-Software/VHT-AMI@v1
+with:
+  access_key_id: ${{ secrets.ACCESS_KEY_ID }}
+  ami_id: ${{ secrets.AMI_ID }}
+  aws_region: ${{ secrets.AWS_DEFAULT_REGION }}
+  iam_role: ${{ secrets.IAM_ROLE }}
+  instance_type: t2.micro // ['t2.micro' as Default]
+  s3_bucket_name: ${{ secrets.AWS_S3_BUCKET }}
+  secret_access_key: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
+  security_group_id: ${{ secrets.SECURITY_GROUP_ID }}
+  session_token: '' // [Optional] ['' as Default]
+  ssh_key_name: common // [Optional] ['' as Default]
+  subnet_id: ${{ secrets.SUBNET_ID }}
+  terminate_ec2_instance: true // [Optional] ['false' as Default]
+  vht_in: ./basic/
 ```
