@@ -381,7 +381,7 @@ class VHTManagement {
         };
 
         let data = await this.sendCommandToInstances(commandParameters);
-        let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 300);
+        let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 3000);
         console.info("Command Status is ", commandExecStatus, "\n");
         let logs = await this.getCommandsLogs(this.instance_id[0], data.Command.CommandId, commandExecStatus);
         return Promise.resolve(logs);
