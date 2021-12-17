@@ -57,23 +57,36 @@ const _ = require("lodash");
  * Class to interact with AWS instance of Arm Virtual Targets
  *
  * constructor params:
- * @param {string} filepath           Path to the testsuite on host. Needs vht.yml in root.
- * @param {string} instance_id        EC2 instance ID.
- * @param {string} aws_region         AWS Region
- * @param {string} access_key_id      IAM Access Key with permissions: AmazonEC2FullAccess, AmazonSSMFullAccess
- * @param {string} secret_access_key  IAM Secret Key to Access Key
- * @param {string} session_token       Session Token (optional)
- *
+ * @param {string} access_key_id
+ * @param {string} ami_id
+ * @param {string} aws_region
+ * @param {string} iam_role
+ * @param {string} instance_id
+ * @param {string} instance_type
+ * @param {string} s3_bucket_name
+ * @param {string} secret_access_key
+ * @param {string} security_group_id
+ * @param {string} session_token
+ * @param {string} ssh_key_name
+ * @param {string} subnet_id
+ * @param {string} vht_in
  */
 
 class VHTManagement {
-  constructor(filepath,
-              instance_id,
+  constructor(access_key_id,
+              ami_id,
               aws_region,
+              iam_role,
+              instance_id,
+              instance_type,
               s3_bucket_name,
-              access_key_id,
               secret_access_key,
-              session_token) {
+              security_group_id,
+              session_token,
+              ssh_key_name,
+              subnet_id,
+              terminate_ec2_instance,
+              vht_in) {
     process.env['AWS_ACCESS_KEY_ID'] = access_key_id;
     process.env['AWS_SECRET_ACCESS_KEY'] = secret_access_key;
     process.env['AWS_SESSION_TOKEN'] = session_token;
@@ -106,7 +119,6 @@ class VHTManagement {
     if (!Array.isArray(instance_id)) this.instance_id = [instance_id];
 
     console.info("Constructor of VHT class done!")
-
   }
 
   /** Generic sleep function */
@@ -369,7 +381,7 @@ class VHTManagement {
         };
 
         let data = await this.sendCommandToInstances(commandParameters);
-        let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 300);
+        let commandExecStatus = await this.checkCommandStatus(data.Command.CommandId, 3000);
         console.info("Command Status is ", commandExecStatus, "\n");
         let logs = await this.getCommandsLogs(this.instance_id[0], data.Command.CommandId, commandExecStatus);
         return Promise.resolve(logs);
@@ -385,16 +397,16 @@ class VHTManagement {
 
   /** Upload File to the S3 Bucket
    * Not used so far **/
-  async uploadFileToS3Bucket(filepath, debug = false) {
+  async uploadFileToS3Bucket(vht_in, debug = false) {
     try {
       // Create a filestream from a file
-      console.log("upload filepath = " + filepath);
-      const fileStream = fs.createReadStream(filepath);
+      console.log("upload vht_in = " + vht_in);
+      const fileStream = fs.createReadStream(vht_in);
 
       // Set the uploadParams parameters
       const uploadParams = {
         Bucket: this.s3_bucket_name,
-        Key: path.basename(filepath),
+        Key: path.basename(vht_in),
         Body: fileStream
       };
 

@@ -28,20 +28,26 @@ const amirun = require('./amirun_v3');
 // most @actions toolkit packages have async methods
 async function run() {
   try {
-    const filepath = core.getInput('vht_in');
-    core.info(`Running with ${filepath} ...`);
+    const access_key_id = core.getInput('access_key_id');
+    core.info(`Running with ${access_key_id} ...`);
 
-    const instance_id = core.getInput('instance_id');
-    core.info(`Running with ${instance_id} ...`);
+    const ami_id = core.getInput('ami_id');
+    core.info(`Running with ${ami_id} ...`);
 
     const aws_region = core.getInput('aws_region');
     core.info(`Running with ${aws_region} ...`);
 
+    const iam_role = core.getInput('iam_role');
+    core.info(`Running with ${iam_role} ...`);
+
+    const instance_id = core.getInput('instance_id');
+    core.info(`Running with ${instance_id} ...`);
+
+    const instance_type = core.getInput('instance_type');
+    core.info(`Running with ${instance_type} ...`);
+
     const s3_bucket_name = core.getInput('s3_bucket_name');
     core.info(`Running with ${s3_bucket_name} ...`);
-
-    const access_key_id = core.getInput('access_key_id');
-    core.info(`Running with ${access_key_id} ...`);
 
     const secret_access_key = core.getInput('secret_access_key');
     core.info(`Running with ${secret_access_key} ...`);
@@ -49,13 +55,35 @@ async function run() {
     const session_token = core.getInput('session_token');
     core.info(`Running with ${session_token} ...`);
 
-    await amirun(filepath,
-                 instance_id,
-                 aws_region,
-                 s3_bucket_name,
-                 access_key_id,
-                 secret_access_key,
-                 session_token);
+    const security_group_id = core.getInput('security_group_id');
+    core.info(`Running with ${security_group_id} ...`);
+
+    const ssh_key_name = core.getInput('ssh_key_name');
+    core.info(`Running with ${ssh_key_name} ...`);
+
+    const subnet_id = core.getInput('subnet_id');
+    core.info(`Running with ${subnet_id} ...`);
+
+    const terminate_ec2_instance = core.getInput('terminate_ec2_instance');
+    core.info(`Running with ${terminate_ec2_instance} ...`);
+
+    const vht_in = core.getInput('vht_in');
+    core.info(`Running with ${vht_in} ...`);
+
+    await amirun( access_key_id,
+                  ami_id,
+                  aws_region,
+                  iam_role,
+                  instance_id,
+                  instance_type,
+                  s3_bucket_name,
+                  secret_access_key,
+                  security_group_id,
+                  session_token,
+                  ssh_key_name,
+                  subnet_id,
+                  terminate_ec2_instance,
+                  vht_in);
   } catch (error) {
     core.setFailed(error.message);
   }
