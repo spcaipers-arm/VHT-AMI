@@ -1,45 +1,26 @@
 name: 'Run on Arm Virtual Target on AMI'
 description: 'Load executable file to an Arm Virtual Target to execute'
+
 inputs:
-  access_key_id:
-    description: 'access key id for connection'
-    required: true
-    default: ''
-  ami_id:
-    description: 'VHT AMI ID desired'
-    required: false
-    default: ''
-  aws_region:
-    description: 'aws region'
-    required: true
-    default: 'eu-west-1'
-  iam_role:
-    description: 'IAM role name'
-    required: false
-    default: ''
-  instance_id:
-    description: 'instance id for connection'
-    required: false
-    default: ''
-  instance_type:
-    description: 'EC2 instance type'
-    required: false
-    default: 't2.micro'
-  s3_bucket_name:
-    description: S3 Bucket to upload files used on EC2 instance
-    required: true
-    default: ''
-  secret_access_key:
-    description: 'secret access key for connection'
-    required: true
-    default: ''
-  security_group_id:
+  ec2_security_group_id:
     description: 'security group for EC2 instance'
     required: false
     default: ''
-  session_token:
-    description: 'session token if you need'
+  ec2_instance_id:
+    description: 'instance id for connection'
     required: false
+    default: ''
+  ec2_instance_type:
+    description: 'EC2 instance type'
+    required: false
+    default: 't2.micro'
+  iam_profile:
+    description: 'IAM role name'
+    required: false
+    default: ''
+  s3_bucket_name:
+    description: S3 Bucket to upload files used on EC2 instance
+    required: true
     default: ''
   ssh_key_name:
     description: 'optional SSH Key name'
@@ -53,13 +34,66 @@ inputs:
     description: 'should ec2 instance be terminated after running it?'
     required: false
     default: 'false'
+  vht_ami_id:
+    description: 'VHT AMI ID'
+    required: false
+    default: ''
+  vht_ami_version:
+    description: 'VHT AMI Version'
+    required: false
+    default: '1.0.0'
   vht_in:
     description: 'path to test_suite'
     required: true
+
 outputs:
-  vht_out: # output will be available to future steps
+  vht_out:
     description: 'path to results'
+    value: test
 
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v2
+      with:
+        repository: 'ARM-software/VHT'
+        ref: 'main'
+        path: vht_module
+
+    - uses: actions/checkout@v2
+      with:
+        repository: 'ARM-software/VHT-AMI'
+        ref: 'v2'
+        path: vht_ami
+
+    - name: Install VHT module
+      run: |
+        pip install .
+      shell: bash
+      working-directory: vht_module/infrastructure/python_resources
+
+    - name: Create the VHT.tar of ${{ inputs.vht_in }}
+      run: tar -cf vht.tar ${{ inputs.vht_in }}
+      shell: bash
+
+    - name: List files from the vht.tar file
+      run: tar -tvf vht.tar
+      shell: bash
+
+    - name: Run Python GitHub Action
+      run: |
+        python3 vht_github_action.py
+      shell: bash
+      working-directory: vht_ami
+      env:
+        ami_id: ${{ inputs.vht_ami_id }}
+        ami_version: ${{ inputs.vht_ami_version }}
+        instance_id: ${{ inputs.ec2_instance_id }}
+        iam_profile: ${{ inputs.iam_profile }}
+        instance_type: ${{ inputs.ec2_instance_type }}
+        gh_workspace: ${{ github.workspace }}
+        s3_bucket_name: ${{ inputs.s3_bucket_name }}
+        s3_keyprefix: 'ssm'
+        security_group_id: ${{ inputs.ec2_security_group_id }}
+        subnet_id: ${{ inputs.subnet_id }}
+        terminate_ec2_instance: ${{ inputs.terminate_ec2_instance }}
