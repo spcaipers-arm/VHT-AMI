@@ -124,8 +124,8 @@ core_instance.upload_s3_file(s3_bucket_name, vht_in, 'vht.tar')
 try:
     command_list = [
         "runuser -l ubuntu -c 'cat ~/.bashrc | grep export > vars'",
-        "rm -rf vhtagent",
-        "rm -rf vhtwork",
+        "runuser -l ubuntu -c 'rm -rf vhtagent'",
+        "runuser -l ubuntu -c 'rm -rf vhtwork'",
         "runuser -l ubuntu -c 'mkdir vhtagent'",
         "runuser -l ubuntu -c 'mkdir vhtwork'",
         "runuser -l ubuntu -c 'mkdir -p /home/ubuntu/packs/.Web'",
