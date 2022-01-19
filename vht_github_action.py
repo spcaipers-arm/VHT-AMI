@@ -153,7 +153,7 @@ try:
             raise Exception("CommandIdStatus not successful")
         logging.info("vht_github_action:-------------------------------------------")
 except:
-    logging.info("vht_github_action:erros happened -- see logs above")
+    logging.info("vht_github_action:errors happened -- see logs above")
     utils_instance.teardown(core_instance, instance_id, terminate_ec2_instance)
     sys.exit(-1)
 
