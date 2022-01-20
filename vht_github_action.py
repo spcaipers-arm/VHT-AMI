@@ -124,8 +124,8 @@ core_instance.upload_s3_file(s3_bucket_name, vht_in, 'vht.tar')
 try:
     command_list = [
         "runuser -l ubuntu -c 'cat ~/.bashrc | grep export > vars'",
-        "runuser -l ubuntu -c 'rm -rf vhtagent'",
-        "runuser -l ubuntu -c 'rm -rf vhtwork'",
+        "rm -rf /home/ubuntu/vhtagent",
+        "rm -rf /home/ubuntu/vhtwork",
         "runuser -l ubuntu -c 'mkdir vhtagent'",
         "runuser -l ubuntu -c 'mkdir vhtwork'",
         "runuser -l ubuntu -c 'mkdir -p /home/ubuntu/packs/.Web'",
@@ -133,9 +133,9 @@ try:
         "runuser -l ubuntu -c 'wget -N https://www.keil.com/pack/index.pidx -O /home/ubuntu/packs/.Web/index.pidx'",
         "apt update",
         "apt install awscli -y",
-        "aws s3 cp s3://" + s3_bucket_name + "/vht.tar /home/ubuntu/vhtwork/vht.tar",
+        "runuser -l ubuntu -c 'aws s3 cp s3://" + s3_bucket_name + "/vht.tar /home/ubuntu/vhtwork/vht.tar'",
         "runuser -l ubuntu -c 'source vars && python3 /home/ubuntu/vhtagent/process_vht.py'",
-        "aws s3 cp /home/ubuntu/vhtwork/out.tar s3://" + s3_bucket_name + "/out.tar"
+        "runuser -l ubuntu -c 'aws s3 cp /home/ubuntu/vhtwork/out.tar s3://" + s3_bucket_name + "/out.tar'"
     ]
 
     for command in command_list:

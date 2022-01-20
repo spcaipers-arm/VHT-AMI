@@ -60,12 +60,6 @@ runs:
         ref: 'main'
         path: vht_module
 
-    - uses: actions/checkout@v2
-      with:
-        repository: 'ARM-software/VHT-AMI'
-        ref: 'v2'
-        path: vht_ami
-
     - name: Install VHT module
       run: |
         pip install .
@@ -84,7 +78,7 @@ runs:
       run: |
         python3 vht_github_action.py
       shell: bash
-      working-directory: vht_ami
+      working-directory: ${{ github.action_path }}
       env:
         ami_id: ${{ inputs.vht_ami_id }}
         ami_version: ${{ inputs.vht_ami_version }}
