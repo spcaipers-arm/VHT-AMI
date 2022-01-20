@@ -4,7 +4,7 @@ This action manages connection, upload and execution of a test suite using a [Gi
 ## Setup of AWS instance
 TODO: Add CloudFormation Example here.
 
-## VHT Pythom Module
+## VHT Python Module
 This VHT-AMI GitHub Actions uses VHT python module. More info:
 https://github.com/ARM-software/VHT/tree/main/infrastructure/python_resources
 
