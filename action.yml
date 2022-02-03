@@ -41,7 +41,7 @@ inputs:
   vht_ami_version:
     description: 'VHT AMI Version'
     required: false
-    default: '1.0.0'
+    default: '1.1.0'
   vht_in:
     description: 'path to test_suite'
     required: true

@@ -1,9 +1,6 @@
 # Arm Virtual Hardware - GitHub Action
 This action manages connection, upload and execution of a test suite using a [GitHub-hosted Runner](https://arm-software.github.io/VHT/main/infrastructure/html/run_ami_github.html#GitHub_hosted). It connects to the Arm Virtual Hardware Service on AWS that is provided by an [Amazon Machine Image](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) (AMI) and executes on a AWS EC2 Linux instance.
 
-## Setup of AWS instance
-TODO: Add CloudFormation Example here.
-
 ## VHT Python Module
 This VHT-AMI GitHub Actions uses VHT python module. More info:
 https://github.com/ARM-software/VHT/tree/main/infrastructure/python_resources
@@ -76,9 +73,9 @@ with:
     terminate_ec2_instance: ''
 
     # VHT AMI Version to be used. This field is overwritten if `vht_ami_id` field is present.
-    # For example: '1.0.0'
+    # For example: '1.1.0'
     # Mandatory if `vht_ami_id` is NOT present
-    # Default: '1.0.0'
+    # Default: '1.1.0'
     vht_ami_version: ''
 
     # VHT AMI ID when the EC2 instance has been created. This fields overwrites vht_ami_version.
