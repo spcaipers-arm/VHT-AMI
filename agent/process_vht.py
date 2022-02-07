@@ -26,13 +26,33 @@ from parser import suite
 import yaml
 import os
 import shutil
+import logging
+import sys
+import subprocess
+
+# Logging
+verbosity = 'INFO'
+level = { "DEBUG": 10, "INFO": 20, "WARNING" : 30, "ERROR" : 40 }
+logging.basicConfig(format='[%(levelname)s]\t%(message)s', level = verbosity)
+logging.debug("Verbosity level is set to " + verbosity)
 
 inventory_file = "./vht.yml"
 
-def main():
+def _execute(command):
+  print(f"Running _execute command: {command}")
+  process = subprocess.run(command.split(),
+                           stderr=subprocess.PIPE,
+                           stdout=subprocess.PIPE)
 
-#    os.system('sudo rm -R /home/ubuntu/vhtwork/')
-#    os.system('mkdir /home/ubuntu/vhtwork/')
+  print(process.stdout.decode('utf-8').strip())
+  print(process.stderr.decode('utf-8').strip())
+  if (process.returncode != 0):
+    logging.error(f"Command `{command}` failed with error code `{process.returncode}`")
+    sys.exit(process.returncode)
+
+  return process.stdout.decode('utf-8').strip()
+
+def main():
     dir = "/home/ubuntu/vhtwork/"
     os.chdir(dir)
     for files in os.listdir(dir):
@@ -43,9 +63,9 @@ def main():
         except OSError:
             os.remove(path)
 
-    os.system("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=2")
-    os.system("sudo chown -R ubuntu:ubuntu /home/ubuntu/vhtwork")
-    os.system ("mkdir -p ./out")
+    _execute("sudo tar xvf /home/ubuntu/vhtwork/vht.tar --strip-components=2")
+    _execute("sudo chown -R ubuntu:ubuntu /home/ubuntu/vhtwork")
+    _execute ("mkdir -p ./out")
     with open(os.path.abspath(inventory_file), "r") as ymlfile:
         inventory = yaml.safe_load(ymlfile)
         print("Reading inventory yaml: vht.yml")
@@ -61,13 +81,13 @@ def main():
             os.chdir(working_dir)
             print("Current Directory: ", os.getcwd())
             pre_suite_execute = value['pre']
-            if pre_suite_execute != None:
+            if pre_suite_execute != "":
               print("Pre-run execution: ", pre_suite_execute)
-              os.system(pre_suite_execute)
+              _execute(pre_suite_execute)
             post_suite_execute = value['post']
-            if post_suite_execute != None:
+            if post_suite_execute != "":
               print("Post-run execution: ", post_suite_execute)
-              os.system(post_suite_execute)
+              _execute(post_suite_execute)
 
             print("Reading Builds: ")
             for build in value['builds']:
@@ -75,12 +95,12 @@ def main():
                 print("Build name: ", buildname)
                 shell_command = build[buildname]["shell"]
                 print("Executing Build command: ", shell_command)
-                result = os.system(shell_command)
+                result = _execute(shell_command)
                 print(result)
                 post_build_execute = build[buildname]["post"]
-                if post_build_execute != None:
+                if post_build_execute != "":
                   print("Post-build execution: ", post_build_execute)
-                  os.system(post_build_execute)
+                  _execute(post_build_execute)
 
             print("Reading Tests: ")
             for test in value['tests']:
@@ -94,21 +114,23 @@ def main():
                 print("Additional FVP options: ", arguments)
 
                 pre_test_execute = test[testname]["pre"]
-                if pre_test_execute != None:
+                if pre_test_execute != "":
                   print("Pre-run execution: ", pre_test_execute)
-                  os.system(pre_test_execute)
+                  _execute(pre_test_execute)
                 head, executable_base_name = os.path.split(executable_name)
-                model_command = fvp_executable + " " + arguments + " " + \
-                    executable_name + " > " + os.path.join("/home/ubuntu/vhtwork/out/",executable_base_name +".stdio")
+                model_command = f"{fvp_executable} {arguments} {executable_name}"
                 print(model_command)
-                result = os.system(model_command)
-                #print("Dry run: ", fvp_executable, "--config-file", arguments ,os.path.join("", fvp_config), executable_name)
-                post_test_execute = test[testname]["post"]
-                if post_test_execute != None:
-                  print("Post-run execution: ", post_test_execute)
-                  os.system(post_test_execute)
+                stdout = _execute(model_command)
 
-    os.system("tar -zcvf /home/ubuntu/vhtwork/out.tar /home/ubuntu/vhtwork/out/")
+                with open(f"/home/ubuntu/vhtwork/out/{executable_base_name}.stdio", 'w') as file:
+                  file.write(stdout)
+
+                post_test_execute = test[testname]["post"]
+                if post_test_execute != "":
+                  print("Post-run execution: ", post_test_execute)
+                  _execute(post_test_execute)
+
+    _execute("tar -zcvf /home/ubuntu/vhtwork/out.tar /home/ubuntu/vhtwork/out/")
 
 if __name__ == '__main__':
     main()
