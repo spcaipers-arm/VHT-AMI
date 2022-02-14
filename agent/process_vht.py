@@ -40,7 +40,10 @@ logging.debug("Verbosity level is set to " + verbosity)
 inventory_file = "./vht.yml"
 
 def _execute(command, shell=False):
-  command = shlex.split(command)
+  # When shell is set, it runs as a single command
+  if not shell:
+    command = shlex.split(command)
+
   print(f"Running _execute command: {command}")
   process = subprocess.run(command,
                            stderr=subprocess.PIPE,
