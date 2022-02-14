@@ -39,12 +39,13 @@ logging.debug("Verbosity level is set to " + verbosity)
 
 inventory_file = "./vht.yml"
 
-def _execute(command):
+def _execute(command, shell=False):
   command = shlex.split(command)
   print(f"Running _execute command: {command}")
   process = subprocess.run(command,
                            stderr=subprocess.PIPE,
-                           stdout=subprocess.PIPE)
+                           stdout=subprocess.PIPE,
+                           shell=shell)
 
   print(process.stdout.decode('utf-8').strip())
   print(process.stderr.decode('utf-8').strip())
@@ -85,7 +86,7 @@ def main():
             pre_suite_execute = value['pre']
             if pre_suite_execute != "":
               print("Pre-run execution: ", pre_suite_execute)
-              _execute(pre_suite_execute)
+              _execute(pre_suite_execute, shell=True)
             post_suite_execute = value['post']
             if post_suite_execute != "":
               print("Post-run execution: ", post_suite_execute)
