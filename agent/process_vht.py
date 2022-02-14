@@ -26,6 +26,7 @@ from parser import suite
 import yaml
 import os
 import shutil
+import shlex
 import logging
 import sys
 import subprocess
@@ -39,8 +40,9 @@ logging.debug("Verbosity level is set to " + verbosity)
 inventory_file = "./vht.yml"
 
 def _execute(command):
+  command = shlex.split(command)
   print(f"Running _execute command: {command}")
-  process = subprocess.run(command.split(),
+  process = subprocess.run(command,
                            stderr=subprocess.PIPE,
                            stdout=subprocess.PIPE)
 
